@@ -1,12 +1,12 @@
 # Grasp
 
-Grasp 是一個免費、開源、local-first 的學測英文單字 App。它只專注一件事：用 FSRS、active recall 與真實語境，讓台灣高中生用更少的複習時間，長期記住真正需要的單字。
+Grasp 是一個免費、開源、local-first 的學測英文單字 App。它以單字為基礎，但不把「看過中文意思」誤當成學會：學生必須能在時間壓力下讀懂語境、判斷詞義與搭配，並把單字主動用在句子裡。
 
 Grasp 不需要帳號，沒有訂閱、廣告、排行榜、社群 feed 或付費牆。下載後即可離線使用；AI 是完全選用的 enhancement，而不是學習流程的依賴。
 
 ## 為什麼建立 Grasp
 
-一般 flashcard 常把單字簡化成 `English → 中文`，但學測也要求一字多義、詞性、語境、近義字辨析、collocation 與 word family。Grasp 將語言內容與使用者的記憶狀態分開儲存，再由 FSRS 自動決定下一次最適合的複習時間。
+一般 flashcard 常把單字簡化成 `English → 中文`，但學測真正要求的是在文章中快速提取意思、看懂前後邏輯，並在翻譯與作文中正確使用。Grasp 因此採用「字義辨認 → 主動回想 → 語境填空 → 搭配／詞義辨析 → 造句」的學習階梯。語言內容與記憶狀態分開儲存，再由 FSRS 自動決定下一次最適合的複習時間。
 
 每天打開 App，只需要處理兩件事：
 
@@ -16,7 +16,8 @@ Grasp 不需要帳號，沒有訂閱、廣告、排行榜、社群 feed 或付�
 ## 核心功能
 
 - FSRS spaced repetition（預設目標記憶率 90%）
-- Recognition、Recall、Cloze、Meaning in Context、Usage 題型
+- Recognition、Typed Recall、Cloze、Meaning in Context、Collocation 與 Active Use 題型
+- 封閉題要求實際輸入答案；造句題以明確檢核表誠實自評
 - 大考中心 Level 1–6 內建詞彙表
 - 一字多義、例句、近義／易混淆字、搭配與 word family 模型
 - Quizlet tab-separated export 與舊版 importer JSON 匯入

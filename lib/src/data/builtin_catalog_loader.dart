@@ -80,6 +80,101 @@ class BuiltInCatalogLoader {
 typedef _Enricher = VocabularyEntry Function(VocabularyEntry base);
 
 final Map<String, _Enricher> _examEnrichment = {
+  'abandon': (base) => _withUsage(
+    base,
+    'She refused to abandon her dream of becoming a writer.',
+    const ['abandon a plan', 'abandon a dream'],
+  ),
+  'accomplish': (base) => _withUsage(
+    base,
+    'He accomplished the task ahead of schedule.',
+    const ['accomplish a task', 'accomplish a goal'],
+  ),
+  'benefit': (base) => _withUsage(
+    base,
+    'Regular exercise offers many health benefits.',
+    const ['benefit from', 'health benefits'],
+  ),
+  'challenge': (base) => _withUsage(
+    base,
+    'Learning a new language is always a challenge.',
+    const ['face a challenge', 'a major challenge'],
+  ),
+  'consequence': (base) => _withUsage(
+    base,
+    'Every decision has its consequences.',
+    const ['the consequence of', 'face the consequences'],
+  ),
+  'demonstrate': (base) => _withUsage(
+    base,
+    'The teacher demonstrated how to solve the equation.',
+    const ['demonstrate an ability', 'demonstrate how'],
+  ),
+  'efficient': (base) => _withUsage(
+    base,
+    'Email is a more efficient way to communicate.',
+    const ['an efficient way', 'energy-efficient'],
+  ),
+  'emphasize': (base) => _withUsage(
+    base,
+    'The coach emphasized the importance of teamwork.',
+    const ['emphasize the importance of'],
+  ),
+  'essential': (base) => _withUsage(
+    base,
+    'Water is essential for life.',
+    const ['be essential for', 'an essential part of'],
+  ),
+  'fundamental': (base) => _withUsage(
+    base,
+    'Reading is a fundamental skill.',
+    const ['be fundamental to', 'a fundamental skill'],
+  ),
+  'generate': (base) => _withUsage(
+    base,
+    'Solar panels generate clean energy.',
+    const ['generate energy', 'generate interest'],
+  ),
+  'gradually': (base) => _withUsage(
+    base,
+    'Her confidence grew gradually over time.',
+    const ['gradually increase', 'gradually change'],
+  ),
+  'inevitable': (base) => _withUsage(
+    base,
+    'Change is inevitable in life.',
+    const ['an inevitable consequence', 'seem inevitable'],
+  ),
+  'investigate': (base) => _withUsage(
+    base,
+    'Police are investigating the cause of the accident.',
+    const ['investigate the cause', 'investigate a claim'],
+  ),
+  'remarkable': (base) => _withUsage(
+    base,
+    'She has made remarkable progress this year.',
+    const ['remarkable progress', 'a remarkable achievement'],
+  ),
+  'policy': (base) => _withUsage(
+    base,
+    'The school introduced a new phone policy.',
+    const ['introduce a policy', 'public policy'],
+  ),
+  'promote': (base) => _withUsage(
+    base,
+    'The campaign promotes healthy eating habits.',
+    const ['promote awareness', 'promote development'],
+  ),
+  'reduce': (base) => _withUsage(
+    base,
+    'The city is trying to reduce plastic waste.',
+    const ['reduce waste', 'reduce the risk of'],
+  ),
+  'impact': (base) => _withUsage(
+    base,
+    'Climate change has a serious impact on farming.',
+    const ['have an impact on', 'a significant impact'],
+  ),
   'substantial': (base) => _replace(
     base,
     senses: const [
@@ -166,6 +261,29 @@ final Map<String, _Enricher> _examEnrichment = {
     collocations: const ['take advantage of', 'have an advantage over'],
   ),
 };
+
+VocabularyEntry _withUsage(
+  VocabularyEntry base,
+  String sentence,
+  List<String> collocations,
+) {
+  final primary = base.primarySense;
+  final senses = [
+    VocabularySense(
+      definitionZh: primary.definitionZh,
+      definitionEn: primary.definitionEn,
+      partOfSpeech: primary.partOfSpeech,
+      isExamPriority: primary.isExamPriority,
+      examples: [
+        ...primary.examples,
+        if (!primary.examples.any((example) => example.sentence == sentence))
+          VocabularyExample(sentence: sentence),
+      ],
+    ),
+    ...base.senses.skip(1),
+  ];
+  return _replace(base, senses: senses, collocations: collocations);
+}
 
 VocabularyEntry _replace(
   VocabularyEntry base, {

@@ -57,6 +57,8 @@ class AppController extends ChangeNotifier {
   ReviewSession? _session;
   DateTime? _promptShownAt;
   bool isAnswerRevealed = false;
+  String currentResponse = '';
+  bool? currentResponseIsCorrect;
   int sessionAgainCount = 0;
 
   int get sessionTotal => _queue.length;
@@ -164,6 +166,8 @@ class AppController extends ChangeNotifier {
     _queue = _repository.getVocabularyBatch(ids);
     _queueIndex = 0;
     isAnswerRevealed = false;
+    currentResponse = '';
+    currentResponseIsCorrect = null;
     sessionAgainCount = 0;
     _promptShownAt = now;
     _session = ReviewSession(
@@ -176,6 +180,21 @@ class AppController extends ChangeNotifier {
   }
 
   void revealAnswer() {
+    isAnswerRevealed = true;
+    notifyListeners();
+  }
+
+  void setCurrentResponse(String value) {
+    currentResponse = value;
+    notifyListeners();
+  }
+
+  void submitCurrentResponse() {
+    final prompt = currentPrompt;
+    if (prompt == null || currentResponse.trim().isEmpty) return;
+    currentResponseIsCorrect = prompt.canCheckAutomatically
+        ? prompt.matchesResponse(currentResponse)
+        : null;
     isAnswerRevealed = true;
     notifyListeners();
   }
@@ -204,7 +223,7 @@ class AppController extends ChangeNotifier {
       reviewedAt: now,
       rating: rating,
       questionType: prompt.type,
-      wasCorrect: rating != ReviewRating.again,
+      wasCorrect: currentResponseIsCorrect ?? rating != ReviewRating.again,
       responseTimeMs: responseMs,
       predictedRetrievability: result.retrievabilityBeforeReview,
       stabilityBefore: before.stability,
@@ -219,6 +238,8 @@ class AppController extends ChangeNotifier {
 
     _queueIndex++;
     isAnswerRevealed = false;
+    currentResponse = '';
+    currentResponseIsCorrect = null;
     _promptShownAt = now;
     final completed = session.plannedVocabularyIds.take(_queueIndex).toList();
     _session = session.copyWith(completedVocabularyIds: completed);

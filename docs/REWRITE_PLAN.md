@@ -13,7 +13,8 @@
 - Vocabulary content as senses, examples, lexical relations, collocations and word family.
 - FSRS integration behind one adapter with persisted learning steps.
 - Today queue from due reviews plus a bounded number of unseen words.
-- Review UI around a small, extensible question engine.
+- Review UI around a small, extensible application ladder: recognition,
+  typed recall, cloze, meaning discrimination, collocation and sentence use.
 - Quizlet import as offline pasted export / JSON rather than a fragile general WebView.
 - AI as optional local/BYOK interfaces with secrets in platform secure storage.
 
@@ -40,6 +41,10 @@ UI
 ```
 
 Persisted entities are independent: `VocabularyEntry`, `LearningState`, `ReviewRecord`, `Deck`, and `ReviewSession`. No entity contains account, premium, sync or analytics fields.
+
+FSRS answers **when** a word should return. `ReviewEngine` answers **how** the
+student must retrieve and use it. A word is not treated as mastered merely
+because its Chinese translation looks familiar.
 
 This repository contains only the rewritten architecture. Legacy product code,
 credentials, backend functions and commercial dependencies are intentionally

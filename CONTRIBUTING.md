@@ -9,6 +9,7 @@
 - AI 功能必須有非 AI fallback，且不得把 key 寫入 source 或一般 local storage。
 - 語言內容與 `LearningState` 不可綁在一起。
 - 排程規則留在 `learning/`；題型選擇留在 `review/`。
+- 封閉題應要求學生先作答再看答案；不要以「翻面後覺得眼熟」取代 active recall。
 
 ## Development
 
@@ -23,4 +24,4 @@ Pull request 請包含：問題、做法、驗證方式，以及任何資料模�
 
 ## Content contributions
 
-學測內容應保持精簡並可追溯來源。例句需自然、程度適合高中生；近義字辨析與 collocation 只保留考試與實際使用價值。不要把 Grasp 變成完整字典。
+學測內容應保持精簡並可追溯來源。例句需自然、程度適合高中生；近義字辨析與 collocation 只保留考試與實際使用價值。缺少可靠語境時應停留在 recall，不得用不自然的模板硬造例句。不要把 Grasp 變成完整字典或題庫平台。

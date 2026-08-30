@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
             Text('Grasp', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 4),
             Text(
-              '今天要背什麼？',
+              '今天要練什麼？',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.8,
@@ -49,14 +49,14 @@ class HomeScreen extends StatelessWidget {
                         Expanded(
                           child: _PlanNumber(
                             value: today.reviewCount,
-                            label: 'Reviews',
+                            label: '到期複習',
                           ),
                         ),
                         Container(width: 1, height: 54, color: Colors.white24),
                         Expanded(
                           child: _PlanNumber(
                             value: today.newCount,
-                            label: 'New Words',
+                            label: '新單字',
                           ),
                         ),
                       ],
@@ -80,7 +80,33 @@ class HomeScreen extends StatelessWidget {
                               );
                               await controller.refresh();
                             },
-                      child: Text(today.plannedCount == 0 ? '今天完成了' : 'Start'),
+                      child: Text(today.plannedCount == 0 ? '今天完成了' : '開始應用複習'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '記住，還要用得出來',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '複習會從字義辨認，逐步進到英文回想、語境填空、搭配與造句。'
+                      'FSRS 決定何時複習，題型則確認你能不能在句子裡真正使用。',
+                      style: TextStyle(
+                        height: 1.5,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),

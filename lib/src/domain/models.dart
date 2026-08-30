@@ -16,6 +16,7 @@ enum ReviewQuestionType {
   cloze,
   meaningDiscrimination,
   usage,
+  production,
 }
 
 class VocabularyExample {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/app_controller.dart';
 import '../domain/models.dart';
+import '../review/review_engine.dart';
 
 class ReviewScreen extends StatelessWidget {
   const ReviewScreen({super.key, required this.controller});
@@ -57,6 +58,19 @@ class ReviewScreen extends StatelessWidget {
                                   fontWeight: FontWeight.w800,
                                 ),
                           ),
+                          if (prompt.instruction.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              prompt.instruction,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                    height: 1.45,
+                                  ),
+                            ),
+                          ],
                           const SizedBox(height: 22),
                           Text(
                             prompt.prompt,
@@ -79,10 +93,61 @@ class ReviewScreen extends StatelessWidget {
                                   ),
                             ),
                           ],
+                          if (prompt.needsTypedResponse &&
+                              !controller.isAnswerRevealed) ...[
+                            const SizedBox(height: 24),
+                            TextField(
+                              key: ValueKey(
+                                '${prompt.vocabularyId}-${prompt.type.name}',
+                              ),
+                              minLines:
+                                  prompt.responseMode ==
+                                      ReviewResponseMode.typedSelfCheck
+                                  ? 3
+                                  : 1,
+                              maxLines:
+                                  prompt.responseMode ==
+                                      ReviewResponseMode.typedSelfCheck
+                                  ? 5
+                                  : 1,
+                              autocorrect: false,
+                              textInputAction:
+                                  prompt.responseMode ==
+                                      ReviewResponseMode.typedSelfCheck
+                                  ? TextInputAction.newline
+                                  : TextInputAction.done,
+                              decoration: InputDecoration(
+                                labelText:
+                                    prompt.responseMode ==
+                                        ReviewResponseMode.typedSelfCheck
+                                    ? '你的英文句子'
+                                    : '輸入英文答案',
+                                hintText:
+                                    prompt.responseMode ==
+                                        ReviewResponseMode.typedSelfCheck
+                                    ? 'Write one complete sentence.'
+                                    : null,
+                                border: const OutlineInputBorder(),
+                              ),
+                              onChanged: controller.setCurrentResponse,
+                              onSubmitted:
+                                  prompt.responseMode ==
+                                      ReviewResponseMode.typedExact
+                                  ? (_) => controller.submitCurrentResponse()
+                                  : null,
+                            ),
+                          ],
                           if (controller.isAnswerRevealed) ...[
                             const SizedBox(height: 28),
                             const Divider(),
                             const SizedBox(height: 22),
+                            if (prompt.needsTypedResponse) ...[
+                              _ResponseResult(
+                                response: controller.currentResponse,
+                                correct: controller.currentResponseIsCorrect,
+                              ),
+                              const SizedBox(height: 18),
+                            ],
                             Text(
                               prompt.answer,
                               style: Theme.of(context).textTheme.headlineSmall
@@ -93,6 +158,32 @@ class ReviewScreen extends StatelessWidget {
                                     fontWeight: FontWeight.w800,
                                   ),
                             ),
+                            if (prompt.selfCheckItems.isNotEmpty) ...[
+                              const SizedBox(height: 18),
+                              Text(
+                                '請依第一次寫出的句子檢核：',
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 8),
+                              for (final item in prompt.selfCheckItems)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 7),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('□  '),
+                                      Expanded(
+                                        child: Text(
+                                          item,
+                                          style: const TextStyle(height: 1.4),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
                             for (final detail in prompt.supportingDetails) ...[
                               const SizedBox(height: 12),
                               Text(
@@ -107,10 +198,21 @@ class ReviewScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (!controller.isAnswerRevealed)
+                if (!controller.isAnswerRevealed && !prompt.needsTypedResponse)
                   FilledButton(
                     onPressed: controller.revealAnswer,
                     child: const Text('顯示答案'),
+                  )
+                else if (!controller.isAnswerRevealed)
+                  FilledButton(
+                    onPressed: controller.currentResponse.trim().isEmpty
+                        ? null
+                        : controller.submitCurrentResponse,
+                    child: Text(
+                      prompt.responseMode == ReviewResponseMode.typedSelfCheck
+                          ? '完成，開始檢核'
+                          : '檢查答案',
+                    ),
                   )
                 else
                   _RatingBar(controller: controller),
@@ -121,6 +223,47 @@ class ReviewScreen extends StatelessWidget {
       );
     },
   );
+}
+
+class _ResponseResult extends StatelessWidget {
+  const _ResponseResult({required this.response, required this.correct});
+
+  final String response;
+  final bool? correct;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (correct) {
+      true => Colors.green.shade700,
+      false => Theme.of(context).colorScheme.error,
+      null => Theme.of(context).colorScheme.onSurfaceVariant,
+    };
+    final label = switch (correct) {
+      true => '第一次作答正確',
+      false => '第一次作答不正確',
+      null => '你的第一次作答',
+    };
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(response, style: const TextStyle(height: 1.45)),
+        ],
+      ),
+    );
+  }
 }
 
 class _RatingBar extends StatelessWidget {
@@ -134,7 +277,7 @@ class _RatingBar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '你剛才回想得如何？',
+          '依照第一次作答評分，不要看完答案後改分。',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.labelLarge,
         ),
@@ -142,10 +285,10 @@ class _RatingBar extends StatelessWidget {
         Row(
           children: ReviewRating.values.map((rating) {
             final label = switch (rating) {
-              ReviewRating.again => '忘記',
-              ReviewRating.hard => '困難',
-              ReviewRating.good => '記得',
-              ReviewRating.easy => '簡單',
+              ReviewRating.again => '答錯',
+              ReviewRating.hard => '勉強',
+              ReviewRating.good => '正確',
+              ReviewRating.easy => '秒答',
             };
             final due = preview[rating];
             return Expanded(
