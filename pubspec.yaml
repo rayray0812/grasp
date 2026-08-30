@@ -1,0 +1,32 @@
+name: grasp_app
+description: "Grasp - 科學化、免費、開源的學測英文單字 App"
+publish_to: 'none'
+version: 2.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Local-first persistence
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.2.4
+
+  # Evidence-based spaced repetition
+  fsrs: ^2.0.1
+
+  # Optional BYOK AI adapter
+  http: ^1.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/exam/gsat_builtin_words_seed.json
