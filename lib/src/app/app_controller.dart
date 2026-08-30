@@ -121,6 +121,11 @@ class AppController extends ChangeNotifier {
       final dueAt = state.due;
       return dueAt == null || !dueAt.isAfter(now);
     }).length;
+    // The home screen promises what this session will actually contain, so it
+    // reports the capped figure rather than the whole backlog.
+    final plannedReviews = due > settings.maxReviewsPerSession
+        ? settings.maxReviewsPerSession
+        : due;
     final newCount = _newCandidateIds(
       states,
     ).take(settings.dailyNewWords).length;
@@ -138,7 +143,7 @@ class AppController extends ChangeNotifier {
         .where((record) => _sameLocalDay(record.reviewedAt, now))
         .length;
     today = TodaySnapshot(
-      reviewCount: due,
+      reviewCount: plannedReviews,
       newCount: newCount,
       completedToday: completedToday,
       learnedCount: learned,
@@ -161,7 +166,13 @@ class AppController extends ChangeNotifier {
             )
             .toList()
           ..sort((a, b) => (a.due ?? now).compareTo(b.due ?? now));
-    final ids = <String>{...due.map((state) => state.vocabularyId)};
+    // Oldest-due first, capped so the session stays finishable; the rest stay
+    // due and lead the next session.
+    final ids = <String>{
+      ...due
+          .take(settings.maxReviewsPerSession)
+          .map((state) => state.vocabularyId),
+    };
     ids.addAll(_newCandidateIds(states).take(settings.dailyNewWords));
     _queue = _repository.getVocabularyBatch(ids);
     _queueIndex = 0;

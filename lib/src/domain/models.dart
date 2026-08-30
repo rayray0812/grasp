@@ -424,24 +424,40 @@ class ReviewSession {
 }
 
 class StudySettings {
-  const StudySettings({this.dailyNewWords = 10, this.desiredRetention = 0.9});
+  const StudySettings({
+    this.dailyNewWords = 10,
+    this.desiredRetention = 0.9,
+    this.maxReviewsPerSession = defaultMaxReviewsPerSession,
+  });
+
+  /// A session has to stay finishable. Without a ceiling, a user returning
+  /// after a break is handed every overdue card at once, which is the usual
+  /// reason people abandon an SRS app.
+  static const defaultMaxReviewsPerSession = 60;
 
   final int dailyNewWords;
   final double desiredRetention;
+  final int maxReviewsPerSession;
 
-  StudySettings copyWith({int? dailyNewWords}) => StudySettings(
-    dailyNewWords: dailyNewWords ?? this.dailyNewWords,
-    desiredRetention: desiredRetention,
-  );
+  StudySettings copyWith({int? dailyNewWords, int? maxReviewsPerSession}) =>
+      StudySettings(
+        dailyNewWords: dailyNewWords ?? this.dailyNewWords,
+        desiredRetention: desiredRetention,
+        maxReviewsPerSession: maxReviewsPerSession ?? this.maxReviewsPerSession,
+      );
 
   Map<String, dynamic> toJson() => {
     'dailyNewWords': dailyNewWords,
     'desiredRetention': desiredRetention,
+    'maxReviewsPerSession': maxReviewsPerSession,
   };
 
   factory StudySettings.fromJson(Map<String, dynamic> json) => StudySettings(
     dailyNewWords: (json['dailyNewWords'] as num?)?.toInt() ?? 10,
     desiredRetention: (json['desiredRetention'] as num?)?.toDouble() ?? 0.9,
+    maxReviewsPerSession:
+        (json['maxReviewsPerSession'] as num?)?.toInt() ??
+        defaultMaxReviewsPerSession,
   );
 }
 

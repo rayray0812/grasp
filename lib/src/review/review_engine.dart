@@ -77,27 +77,24 @@ class ReviewEngine {
           supportingDetails: _details(entry),
         );
       case ReviewQuestionType.recall:
-        return ReviewPrompt(
-          vocabularyId: entry.id,
-          type: type,
-          eyebrow: 'Recall',
-          instruction: '不要只在腦中想，請把英文完整輸入。',
-          prompt: primary.definitionZh,
-          context: primary.partOfSpeech,
-          answer: entry.word,
-          supportingDetails: _details(entry),
-          responseMode: ReviewResponseMode.typedExact,
-          acceptedAnswers: {entry.word, entry.lemma}.toList(),
-        );
+        return _recallPrompt(entry, primary);
       case ReviewQuestionType.cloze:
-        final example = primary.examples.first;
+        // Cloze is offered when *any* sense has an example, so take the sense
+        // that actually has one — the primary sense often has none, and
+        // reading its empty example list used to throw mid-review.
+        final clozeSense = entry.senses.firstWhere(
+          (sense) => sense.examples.isNotEmpty,
+          orElse: () => primary,
+        );
+        final example = clozeSense.examples.firstOrNull;
+        if (example == null) return _recallPrompt(entry, primary);
         return ReviewPrompt(
           vocabularyId: entry.id,
           type: type,
           eyebrow: 'Cloze',
           instruction: '根據整句語意與文法，輸入最適合的單字。',
           prompt: _cloze(example.sentence, entry.word),
-          context: primary.definitionZh,
+          context: clozeSense.definitionZh,
           answer: entry.word,
           supportingDetails: [
             if (example.translationZh.isNotEmpty) example.translationZh,
@@ -163,6 +160,22 @@ class ReviewEngine {
         );
     }
   }
+
+  /// Typed English recall. Also the fallback when a context-based question
+  /// cannot be built because the entry has no usable example sentence.
+  ReviewPrompt _recallPrompt(VocabularyEntry entry, VocabularySense primary) =>
+      ReviewPrompt(
+        vocabularyId: entry.id,
+        type: ReviewQuestionType.recall,
+        eyebrow: 'Recall',
+        instruction: '不要只在腦中想，請把英文完整輸入。',
+        prompt: primary.definitionZh,
+        context: primary.partOfSpeech,
+        answer: entry.word,
+        supportingDetails: _details(entry),
+        responseMode: ReviewResponseMode.typedExact,
+        acceptedAnswers: {entry.word, entry.lemma}.toList(),
+      );
 
   ReviewQuestionType _selectType(
     LearningState state,

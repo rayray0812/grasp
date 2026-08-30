@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/models.dart';
@@ -17,64 +18,71 @@ class BuiltInCatalogLoader {
   static const assetPath = 'assets/exam/gsat_builtin_words_seed.json';
   final AssetBundle? bundle;
 
+  /// Parses ~2.6MB of seed JSON into 6k+ entries. That is far too much work
+  /// for the first frame, so it runs on a background isolate; only the finished
+  /// plain-data objects come back.
   Future<BuiltInCatalog> load() async {
     final raw = await (bundle ?? rootBundle).loadString(assetPath);
-    final json = jsonDecode(raw) as Map<String, dynamic>;
-    final words = (json['words'] as List<dynamic>? ?? const [])
-        .whereType<Map>()
-        .map((item) => _entry(Map<String, dynamic>.from(item)))
-        .toList(growable: false);
-    final now = DateTime.utc(2026, 1, 1);
-    final decks = (json['decks'] as List<dynamic>? ?? const [])
-        .whereType<Map>()
-        .map((rawDeck) {
-          final deck = Map<String, dynamic>.from(rawDeck);
-          final id = deck['id']?.toString() ?? '';
-          return Deck(
-            id: 'builtin-$id',
-            title: deck['title']?.toString() ?? '學測單字',
-            description: deck['description']?.toString() ?? '大考中心詞彙表',
-            vocabularyIds: (deck['wordIds'] as List<dynamic>? ?? const [])
-                .map((value) => value.toString())
-                .toList(growable: false),
-            source: DeckSource.builtIn,
-            createdAt: now,
-            isActive: id == 'gsat-level-1',
-          );
-        })
-        .toList(growable: false);
-    return BuiltInCatalog(entries: words, decks: decks);
+    return compute(_parseCatalog, raw, debugLabel: 'grasp:parseBuiltInCatalog');
   }
+}
 
-  VocabularyEntry _entry(Map<String, dynamic> json) {
-    final word = json['word']?.toString().trim() ?? '';
-    final lemma = json['lemma']?.toString().trim() ?? word.toLowerCase();
-    final definition = json['definitionZh']?.toString().trim() ?? '';
-    final partOfSpeech = json['partOfSpeech']?.toString().trim() ?? '';
-    final example = json['exampleSentence']?.toString().trim() ?? '';
-    final base = VocabularyEntry(
-      id: json['id']?.toString() ?? 'gsat-${_stableHash('$word|$definition')}',
-      word: word,
-      lemma: lemma,
-      senses: [
-        VocabularySense(
-          definitionZh: definition,
-          definitionEn: json['definitionEn']?.toString().trim() ?? '',
-          partOfSpeech: partOfSpeech,
-          isExamPriority: true,
-          examples: [
-            if (example.isNotEmpty) VocabularyExample(sentence: example),
-          ],
-        ),
-      ],
-      level: (json['level'] as num?)?.toInt(),
-      tags: (json['tags'] as List<dynamic>? ?? const [])
-          .map((tag) => tag.toString())
-          .toList(growable: false),
-      source: '大考中心詞彙表',
-    );
-    return _examEnrichment[lemma]?.call(base) ?? base;
-  }
+BuiltInCatalog _parseCatalog(String raw) {
+  final json = jsonDecode(raw) as Map<String, dynamic>;
+  final words = (json['words'] as List<dynamic>? ?? const [])
+      .whereType<Map>()
+      .map((item) => _entry(Map<String, dynamic>.from(item)))
+      .toList(growable: false);
+  final now = DateTime.utc(2026, 1, 1);
+  final decks = (json['decks'] as List<dynamic>? ?? const [])
+      .whereType<Map>()
+      .map((rawDeck) {
+        final deck = Map<String, dynamic>.from(rawDeck);
+        final id = deck['id']?.toString() ?? '';
+        return Deck(
+          id: 'builtin-$id',
+          title: deck['title']?.toString() ?? '學測單字',
+          description: deck['description']?.toString() ?? '大考中心詞彙表',
+          vocabularyIds: (deck['wordIds'] as List<dynamic>? ?? const [])
+              .map((value) => value.toString())
+              .toList(growable: false),
+          source: DeckSource.builtIn,
+          createdAt: now,
+          isActive: id == 'gsat-level-1',
+        );
+      })
+      .toList(growable: false);
+  return BuiltInCatalog(entries: words, decks: decks);
+}
+
+VocabularyEntry _entry(Map<String, dynamic> json) {
+  final word = json['word']?.toString().trim() ?? '';
+  final lemma = json['lemma']?.toString().trim() ?? word.toLowerCase();
+  final definition = json['definitionZh']?.toString().trim() ?? '';
+  final partOfSpeech = json['partOfSpeech']?.toString().trim() ?? '';
+  final example = json['exampleSentence']?.toString().trim() ?? '';
+  final base = VocabularyEntry(
+    id: json['id']?.toString() ?? 'gsat-${_stableHash('$word|$definition')}',
+    word: word,
+    lemma: lemma,
+    senses: [
+      VocabularySense(
+        definitionZh: definition,
+        definitionEn: json['definitionEn']?.toString().trim() ?? '',
+        partOfSpeech: partOfSpeech,
+        isExamPriority: true,
+        examples: [
+          if (example.isNotEmpty) VocabularyExample(sentence: example),
+        ],
+      ),
+    ],
+    level: (json['level'] as num?)?.toInt(),
+    tags: (json['tags'] as List<dynamic>? ?? const [])
+        .map((tag) => tag.toString())
+        .toList(growable: false),
+    source: '大考中心詞彙表',
+  );
+  return _examEnrichment[lemma]?.call(base) ?? base;
 }
 
 typedef _Enricher = VocabularyEntry Function(VocabularyEntry base);

@@ -28,6 +28,39 @@ void main() {
     expect(repository.records, hasLength(2));
     expect(repository.sessions.values.single.endedAt, isNotNull);
   });
+
+  test('a large backlog is capped so one session stays finishable', () async {
+    final now = DateTime.utc(2026, 8, 30, 8);
+    final repository = _MemoryRepository(now);
+    // 200 overdue words: without a ceiling every one of them lands in a single
+    // session, which is how returning users get buried and quit.
+    for (var i = 0; i < 200; i++) {
+      final id = 'backlog-$i';
+      repository.entries[id] = VocabularyEntry(
+        id: id,
+        word: 'word$i',
+        lemma: 'word$i',
+        senses: const [VocabularySense(definitionZh: '意思')],
+      );
+      repository.states[id] = LearningState(
+        vocabularyId: id,
+        stability: 2,
+        difficulty: 5,
+        repetitions: 1,
+        fsrsState: 2,
+        lastReview: now.subtract(const Duration(days: 5)),
+        due: now.subtract(Duration(days: 2, minutes: i)),
+      );
+    }
+    final controller = AppController(repository: repository, clock: () => now);
+
+    await controller.initialize();
+    const cap = StudySettings.defaultMaxReviewsPerSession;
+    expect(controller.today.reviewCount, cap);
+
+    await controller.startTodaySession();
+    expect(controller.sessionTotal, lessThanOrEqualTo(cap + 10));
+  });
 }
 
 class _MemoryRepository implements GraspRepository {

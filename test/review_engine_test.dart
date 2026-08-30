@@ -88,4 +88,57 @@ void main() {
     expect(prompt.selfCheckItems, isNotEmpty);
     expect(prompt.answer, contains('substantial'));
   });
+
+  test(
+    'cloze survives a multi-sense word whose primary sense has no example',
+    () {
+      // The catalogue enriches some words with extra senses; the first sense
+      // often carries no example sentence. Reading it unguarded used to throw
+      // "Bad state: No element" in the middle of a review session.
+      final entry = VocabularyEntry(
+        id: 'bank',
+        word: 'bank',
+        lemma: 'bank',
+        senses: const [
+          VocabularySense(definitionZh: '銀行', partOfSpeech: 'n.'),
+          VocabularySense(
+            definitionZh: '河岸',
+            partOfSpeech: 'n.',
+            examples: [VocabularyExample(sentence: 'We sat on the bank.')],
+          ),
+        ],
+      );
+
+      for (var repetitions = 1; repetitions < 12; repetitions++) {
+        final prompt = const ReviewEngine().buildPrompt(
+          entry: entry,
+          state: LearningState(
+            vocabularyId: 'bank',
+            repetitions: repetitions,
+            lastReview: DateTime.utc(2026, 1, 1),
+            due: DateTime.utc(2026, 1, 2),
+            stability: 3,
+            difficulty: 5,
+            fsrsState: 2,
+          ),
+        );
+        expect(prompt.prompt, isNotEmpty, reason: 'repetitions=$repetitions');
+      }
+    },
+  );
+
+  test('cloze falls back to typed recall when no sense has an example', () {
+    const entry = VocabularyEntry(
+      id: 'plain',
+      word: 'plain',
+      lemma: 'plain',
+      senses: [VocabularySense(definitionZh: '平原', partOfSpeech: 'n.')],
+    );
+    final prompt = const ReviewEngine().buildPrompt(
+      entry: entry,
+      state: const LearningState(vocabularyId: 'plain', repetitions: 3),
+    );
+    expect(prompt.prompt, isNotEmpty);
+    expect(prompt.responseMode, isNot(ReviewResponseMode.reveal));
+  });
 }
