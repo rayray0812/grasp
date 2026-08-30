@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_controller.dart';
+import '../domain/content_quality.dart';
 import '../domain/models.dart';
 
 class LibraryScreen extends StatelessWidget {
@@ -99,7 +100,21 @@ class LibraryScreen extends StatelessWidget {
                 entry.word,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              subtitle: Text(entry.primarySense.definitionZh),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.primarySense.definitionZh),
+                  if (entry.contentQuality.labels.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      entry.contentQuality.labels.join(' · '),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               trailing: entry.level == null
                   ? null
                   : Text(
@@ -141,6 +156,8 @@ class _WordDetails extends StatelessWidget {
           ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
         if (entry.lemma != entry.word.toLowerCase()) Text(entry.lemma),
+        const SizedBox(height: 10),
+        _ContentBadges(quality: entry.contentQuality),
         const SizedBox(height: 18),
         for (final sense in entry.senses) ...[
           Text(
@@ -193,6 +210,35 @@ class _WordDetails extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _ContentBadges extends StatelessWidget {
+  const _ContentBadges({required this.quality});
+
+  final VocabularyContentQuality quality;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = quality.labels;
+    if (labels.isEmpty) {
+      return Text(
+        '目前提供字義與詞性練習；可靠語境內容尚待補充。',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: labels
+          .map(
+            (label) =>
+                Chip(visualDensity: VisualDensity.compact, label: Text(label)),
+          )
+          .toList(growable: false),
+    );
+  }
 }
 
 class _DetailSection extends StatelessWidget {

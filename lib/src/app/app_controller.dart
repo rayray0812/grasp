@@ -26,6 +26,30 @@ class TodaySnapshot {
   int get plannedCount => reviewCount + newCount;
 }
 
+class ApplicationSnapshot {
+  const ApplicationSnapshot({
+    this.attempts = 0,
+    this.correct = 0,
+    this.averageResponseMs = 0,
+    this.weakestQuestionType,
+  });
+
+  final int attempts;
+  final int correct;
+  final int averageResponseMs;
+  final ReviewQuestionType? weakestQuestionType;
+
+  double get accuracy => attempts == 0 ? 0 : correct / attempts;
+  int get averageResponseSeconds => (averageResponseMs / 1000).round();
+}
+
+class RecentMistake {
+  const RecentMistake({required this.entry, required this.record});
+
+  final VocabularyEntry entry;
+  final ReviewRecord record;
+}
+
 class AppController extends ChangeNotifier {
   AppController({
     required GraspRepository repository,
@@ -48,6 +72,8 @@ class AppController extends ChangeNotifier {
   bool isLoading = true;
   String? error;
   TodaySnapshot today = const TodaySnapshot();
+  ApplicationSnapshot application = const ApplicationSnapshot();
+  List<RecentMistake> recentMistakes = const [];
   StudySettings settings = const StudySettings();
   List<Deck> decks = const [];
   List<VocabularyEntry> libraryResults = const [];
@@ -59,7 +85,11 @@ class AppController extends ChangeNotifier {
   bool isAnswerRevealed = false;
   String currentResponse = '';
   bool? currentResponseIsCorrect;
+  String correctionResponse = '';
+  bool isCorrectionComplete = false;
   int sessionAgainCount = 0;
+  int sessionApplicationCount = 0;
+  int sessionApplicationCorrect = 0;
 
   int get sessionTotal => _queue.length;
   int get sessionCompleted => _queueIndex.clamp(0, _queue.length);
@@ -150,6 +180,8 @@ class AppController extends ChangeNotifier {
       retention: retention,
       streak: _streak(records, now),
     );
+    application = _applicationSnapshot(records);
+    recentMistakes = _recentMistakes(records);
     libraryResults = _repository.searchVocabulary('', limit: 80);
     notifyListeners();
   }
@@ -179,7 +211,11 @@ class AppController extends ChangeNotifier {
     isAnswerRevealed = false;
     currentResponse = '';
     currentResponseIsCorrect = null;
+    correctionResponse = '';
+    isCorrectionComplete = false;
     sessionAgainCount = 0;
+    sessionApplicationCount = 0;
+    sessionApplicationCorrect = 0;
     _promptShownAt = now;
     _session = ReviewSession(
       id: _id('session', now),
@@ -210,16 +246,32 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCorrectionResponse(String value) {
+    correctionResponse = value;
+    notifyListeners();
+  }
+
+  void submitCorrection() {
+    final prompt = currentPrompt;
+    if (prompt == null || currentResponseIsCorrect != false) return;
+    isCorrectionComplete = prompt.matchesResponse(correctionResponse);
+    notifyListeners();
+  }
+
   Future<void> rateCurrent(ReviewRating rating) async {
     final entry = currentEntry;
     final session = _session;
     if (entry == null || session == null || !isAnswerRevealed) return;
+    if (currentResponseIsCorrect == false && !isCorrectionComplete) return;
     final now = _clock();
     final before =
         currentLearningState ?? LearningState(vocabularyId: entry.id);
+    final effectiveRating = currentResponseIsCorrect == false
+        ? ReviewRating.again
+        : rating;
     final result = _scheduler.review(
       state: before,
-      rating: rating,
+      rating: effectiveRating,
       reviewedAt: now,
     );
     final prompt = currentPrompt!;
@@ -232,9 +284,10 @@ class AppController extends ChangeNotifier {
       vocabularyId: entry.id,
       sessionId: session.id,
       reviewedAt: now,
-      rating: rating,
+      rating: effectiveRating,
       questionType: prompt.type,
-      wasCorrect: currentResponseIsCorrect ?? rating != ReviewRating.again,
+      wasCorrect:
+          currentResponseIsCorrect ?? effectiveRating != ReviewRating.again,
       responseTimeMs: responseMs,
       predictedRetrievability: result.retrievabilityBeforeReview,
       stabilityBefore: before.stability,
@@ -242,15 +295,23 @@ class AppController extends ChangeNotifier {
       difficultyBefore: before.difficulty,
       difficultyAfter: result.state.difficulty,
       nextDue: result.state.due!,
+      response: currentResponse,
+      correctionCompleted: isCorrectionComplete,
     );
     await _repository.saveLearningState(result.state);
     await _repository.saveReviewRecord(record);
-    if (rating == ReviewRating.again) sessionAgainCount++;
+    if (effectiveRating == ReviewRating.again) sessionAgainCount++;
+    if (prompt.type != ReviewQuestionType.recognition) {
+      sessionApplicationCount++;
+      if (record.wasCorrect) sessionApplicationCorrect++;
+    }
 
     _queueIndex++;
     isAnswerRevealed = false;
     currentResponse = '';
     currentResponseIsCorrect = null;
+    correctionResponse = '';
+    isCorrectionComplete = false;
     _promptShownAt = now;
     final completed = session.plannedVocabularyIds.take(_queueIndex).toList();
     _session = session.copyWith(completedVocabularyIds: completed);
@@ -315,6 +376,60 @@ class AppController extends ChangeNotifier {
       cursor = cursor.subtract(const Duration(days: 1));
     }
     return count;
+  }
+
+  ApplicationSnapshot _applicationSnapshot(List<ReviewRecord> records) {
+    final recent =
+        records
+            .where(
+              (record) => record.questionType != ReviewQuestionType.recognition,
+            )
+            .toList()
+          ..sort((a, b) => b.reviewedAt.compareTo(a.reviewedAt));
+    final sample = recent.take(50).toList(growable: false);
+    if (sample.isEmpty) return const ApplicationSnapshot();
+    final correct = sample.where((record) => record.wasCorrect).length;
+    final responseTotal = sample.fold<int>(
+      0,
+      (sum, record) => sum + record.responseTimeMs,
+    );
+    final byType = <ReviewQuestionType, List<ReviewRecord>>{};
+    for (final record in sample) {
+      byType.putIfAbsent(record.questionType, () => []).add(record);
+    }
+    ReviewQuestionType? weakest;
+    var weakestAccuracy = 2.0;
+    for (final entry in byType.entries) {
+      final accuracy =
+          entry.value.where((record) => record.wasCorrect).length /
+          entry.value.length;
+      if (accuracy < weakestAccuracy) {
+        weakest = entry.key;
+        weakestAccuracy = accuracy;
+      }
+    }
+    return ApplicationSnapshot(
+      attempts: sample.length,
+      correct: correct,
+      averageResponseMs: responseTotal ~/ sample.length,
+      weakestQuestionType: weakest,
+    );
+  }
+
+  List<RecentMistake> _recentMistakes(List<ReviewRecord> records) {
+    final wrong = records.where((record) => !record.wasCorrect).toList()
+      ..sort((a, b) => b.reviewedAt.compareTo(a.reviewedAt));
+    final seen = <String>{};
+    final result = <RecentMistake>[];
+    for (final record in wrong) {
+      if (!seen.add(record.vocabularyId)) continue;
+      final entry = _repository.getVocabulary(record.vocabularyId);
+      if (entry != null) {
+        result.add(RecentMistake(entry: entry, record: record));
+      }
+      if (result.length == 3) break;
+    }
+    return result;
   }
 
   bool _sameLocalDay(DateTime a, DateTime b) => _localDay(a) == _localDay(b);

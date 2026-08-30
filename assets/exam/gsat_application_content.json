@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "contentPolicy": "Original Grasp editorial content. Keep examples short, natural, exam-relevant, and traceable through git history.",
+  "entries": [
+    {
+      "lemma": "abandon",
+      "examples": [{"sentence": "She refused to abandon her dream of becoming a writer.", "source": "Grasp editorial"}],
+      "collocations": ["abandon a plan", "abandon a dream"]
+    },
+    {
+      "lemma": "accomplish",
+      "examples": [{"sentence": "He accomplished the task ahead of schedule.", "source": "Grasp editorial"}],
+      "collocations": ["accomplish a task", "accomplish a goal"]
+    },
+    {
+      "lemma": "benefit",
+      "examples": [{"sentence": "Regular exercise offers many health benefits.", "source": "Grasp editorial"}],
+      "collocations": ["benefit from", "health benefits"]
+    },
+    {
+      "lemma": "challenge",
+      "examples": [{"sentence": "Learning a new language is always a challenge.", "source": "Grasp editorial"}],
+      "collocations": ["face a challenge", "a major challenge"]
+    },
+    {
+      "lemma": "consequence",
+      "examples": [{"sentence": "Every decision has its consequences.", "source": "Grasp editorial"}],
+      "collocations": ["the consequence of", "face the consequences"]
+    },
+    {
+      "lemma": "demonstrate",
+      "examples": [{"sentence": "The teacher demonstrated how to solve the equation.", "source": "Grasp editorial"}],
+      "collocations": ["demonstrate an ability", "demonstrate how"]
+    },
+    {
+      "lemma": "efficient",
+      "examples": [{"sentence": "Email is a more efficient way to communicate.", "source": "Grasp editorial"}],
+      "collocations": ["an efficient way", "energy-efficient"]
+    },
+    {
+      "lemma": "emphasize",
+      "examples": [{"sentence": "The coach emphasized the importance of teamwork.", "source": "Grasp editorial"}],
+      "collocations": ["emphasize the importance of"]
+    },
+    {
+      "lemma": "essential",
+      "examples": [{"sentence": "Water is essential for life.", "source": "Grasp editorial"}],
+      "collocations": ["be essential for", "an essential part of"]
+    },
+    {
+      "lemma": "fundamental",
+      "examples": [{"sentence": "Reading is a fundamental skill.", "source": "Grasp editorial"}],
+      "collocations": ["be fundamental to", "a fundamental skill"]
+    },
+    {
+      "lemma": "generate",
+      "examples": [{"sentence": "Solar panels generate clean energy.", "source": "Grasp editorial"}],
+      "collocations": ["generate energy", "generate interest"]
+    },
+    {
+      "lemma": "gradual",
+      "examples": [{"sentence": "The change was gradual, but its effects were significant.", "source": "Grasp editorial"}],
+      "collocations": ["a gradual increase", "gradual change"]
+    },
+    {
+      "lemma": "inevitable",
+      "examples": [{"sentence": "Change is inevitable in life.", "source": "Grasp editorial"}],
+      "collocations": ["an inevitable consequence", "seem inevitable"]
+    },
+    {
+      "lemma": "investigate",
+      "examples": [{"sentence": "Police are investigating the cause of the accident.", "source": "Grasp editorial"}],
+      "collocations": ["investigate the cause", "investigate a claim"]
+    },
+    {
+      "lemma": "remarkable",
+      "examples": [{"sentence": "She has made remarkable progress this year.", "source": "Grasp editorial"}],
+      "collocations": ["remarkable progress", "a remarkable achievement"]
+    },
+    {
+      "lemma": "policy",
+      "examples": [{"sentence": "The school introduced a new phone policy.", "source": "Grasp editorial"}],
+      "collocations": ["introduce a policy", "public policy"]
+    },
+    {
+      "lemma": "promote",
+      "examples": [{"sentence": "The campaign promotes healthy eating habits.", "source": "Grasp editorial"}],
+      "collocations": ["promote awareness", "promote development"]
+    },
+    {
+      "lemma": "reduce",
+      "examples": [{"sentence": "The city is trying to reduce plastic waste.", "source": "Grasp editorial"}],
+      "collocations": ["reduce waste", "reduce the risk of"]
+    },
+    {
+      "lemma": "impact",
+      "examples": [{"sentence": "Climate change has a serious impact on farming.", "source": "Grasp editorial"}],
+      "collocations": ["have an impact on", "a significant impact"]
+    },
+    {
+      "lemma": "substantial",
+      "senses": [
+        {
+          "definitionZh": "大量的；可觀的",
+          "partOfSpeech": "adj.",
+          "isExamPriority": true,
+          "examples": [{"sentence": "The project requires a substantial amount of money.", "translationZh": "這項計畫需要一筆可觀的資金。", "source": "Grasp editorial"}]
+        },
+        {
+          "definitionZh": "重要的；實質的",
+          "partOfSpeech": "adj.",
+          "examples": [{"sentence": "There is substantial evidence to support the claim.", "translationZh": "有實質證據支持這項主張。", "source": "Grasp editorial"}]
+        }
+      ],
+      "synonyms": [
+        {"word": "considerable", "noteZh": "強調數量或程度可觀"},
+        {"word": "significant", "noteZh": "也可強調重要性"}
+      ],
+      "collocations": ["a substantial amount of", "substantial evidence", "substantial change"]
+    },
+    {
+      "lemma": "affect",
+      "synonyms": [
+        {"word": "influence", "noteZh": "影響的過程較中性"},
+        {"word": "impact", "noteZh": "常暗示較強烈的影響"}
+      ],
+      "confusingWords": [{"word": "effect", "noteZh": "通常作名詞，表示結果或影響"}],
+      "collocations": ["directly affect", "adversely affect"],
+      "wordFamily": [
+        {"word": "effect", "partOfSpeech": "n.", "meaningZh": "影響；結果"},
+        {"word": "effective", "partOfSpeech": "adj.", "meaningZh": "有效的"}
+      ]
+    },
+    {
+      "lemma": "respond",
+      "collocations": ["respond to", "respond quickly"],
+      "wordFamily": [
+        {"word": "response", "partOfSpeech": "n.", "meaningZh": "回應"},
+        {"word": "responsive", "partOfSpeech": "adj.", "meaningZh": "反應靈敏的"}
+      ]
+    },
+    {
+      "lemma": "economic",
+      "confusingWords": [{"word": "economical", "noteZh": "節省的；經濟實惠的"}],
+      "collocations": ["economic growth", "economic development"]
+    },
+    {
+      "lemma": "historic",
+      "confusingWords": [{"word": "historical", "noteZh": "與歷史有關的；historic 指具歷史重要性"}]
+    },
+    {
+      "lemma": "expose",
+      "collocations": ["be exposed to", "expose a problem"]
+    },
+    {
+      "lemma": "advantage",
+      "collocations": ["take advantage of", "have an advantage over"]
+    }
+  ]
+}

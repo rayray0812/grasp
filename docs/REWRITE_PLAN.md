@@ -42,6 +42,9 @@ UI
 
 Persisted entities are independent: `VocabularyEntry`, `LearningState`, `ReviewRecord`, `Deck`, and `ReviewSession`. No entity contains account, premium, sync or analytics fields.
 
+基礎學測字表與人工審核的應用內容採兩層資產：前者提供穩定 ID、字義與
+Level，後者以 lemma overlay 補充語境。更新內容不會重設學習狀態。
+
 FSRS answers **when** a word should return. `ReviewEngine` answers **how** the
 student must retrieve and use it. A word is not treated as mastered merely
 because its Chinese translation looks familiar.

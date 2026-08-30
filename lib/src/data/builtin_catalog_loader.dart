@@ -16,23 +16,64 @@ class BuiltInCatalogLoader {
   const BuiltInCatalogLoader({this.bundle});
 
   static const assetPath = 'assets/exam/gsat_builtin_words_seed.json';
+  static const applicationContentPath =
+      'assets/exam/gsat_application_content.json';
   final AssetBundle? bundle;
 
   /// Parses ~2.6MB of seed JSON into 6k+ entries. That is far too much work
   /// for the first frame, so it runs on a background isolate; only the finished
   /// plain-data objects come back.
   Future<BuiltInCatalog> load() async {
-    final raw = await (bundle ?? rootBundle).loadString(assetPath);
-    return compute(_parseCatalog, raw, debugLabel: 'grasp:parseBuiltInCatalog');
+    final assetBundle = bundle ?? rootBundle;
+    final values = await Future.wait([
+      assetBundle.loadString(assetPath),
+      assetBundle.loadString(applicationContentPath),
+    ]);
+    return compute(_parseCatalog, (
+      vocabulary: values[0],
+      application: values[1],
+    ), debugLabel: 'grasp:parseBuiltInCatalog');
   }
+
+  @visibleForTesting
+  BuiltInCatalog parse({
+    required String vocabularyJson,
+    required String applicationJson,
+  }) =>
+      _parseCatalog((vocabulary: vocabularyJson, application: applicationJson));
 }
 
-BuiltInCatalog _parseCatalog(String raw) {
-  final json = jsonDecode(raw) as Map<String, dynamic>;
+BuiltInCatalog _parseCatalog(({String vocabulary, String application}) source) {
+  final json = jsonDecode(source.vocabulary) as Map<String, dynamic>;
+  final applicationJson =
+      jsonDecode(source.application) as Map<String, dynamic>;
+  if (applicationJson['schemaVersion'] != 1) {
+    throw const FormatException('Unsupported application content schema.');
+  }
+  final overlays = <String, Map<String, dynamic>>{};
+  for (final rawOverlay in _mapList(applicationJson['entries'])) {
+    final lemma = _text(rawOverlay['lemma']).toLowerCase();
+    if (lemma.isEmpty || overlays.containsKey(lemma)) {
+      throw FormatException('Invalid or duplicate application lemma: $lemma');
+    }
+    overlays[lemma] = rawOverlay;
+  }
   final words = (json['words'] as List<dynamic>? ?? const [])
       .whereType<Map>()
-      .map((item) => _entry(Map<String, dynamic>.from(item)))
+      .map((item) {
+        final raw = Map<String, dynamic>.from(item);
+        return _entry(raw, overlays[_catalogLemma(raw)]);
+      })
       .toList(growable: false);
+  final catalogLemmas = words.map((entry) => entry.lemma).toSet();
+  final unknown = overlays.keys.where(
+    (lemma) => !catalogLemmas.contains(lemma),
+  );
+  if (unknown.isNotEmpty) {
+    throw FormatException(
+      'Application content references unknown words: ${unknown.join(', ')}',
+    );
+  }
   final now = DateTime.utc(2026, 1, 1);
   final decks = (json['decks'] as List<dynamic>? ?? const [])
       .whereType<Map>()
@@ -55,7 +96,10 @@ BuiltInCatalog _parseCatalog(String raw) {
   return BuiltInCatalog(entries: words, decks: decks);
 }
 
-VocabularyEntry _entry(Map<String, dynamic> json) {
+VocabularyEntry _entry(
+  Map<String, dynamic> json,
+  Map<String, dynamic>? overlay,
+) {
   final word = json['word']?.toString().trim() ?? '';
   final lemma = json['lemma']?.toString().trim() ?? word.toLowerCase();
   final definition = json['definitionZh']?.toString().trim() ?? '';
@@ -82,238 +126,135 @@ VocabularyEntry _entry(Map<String, dynamic> json) {
         .toList(growable: false),
     source: '大考中心詞彙表',
   );
-  return _examEnrichment[lemma]?.call(base) ?? base;
+  return overlay == null ? base : _applyOverlay(base, overlay);
 }
 
-typedef _Enricher = VocabularyEntry Function(VocabularyEntry base);
+String _catalogLemma(Map<String, dynamic> json) {
+  final lemma = _text(json['lemma']);
+  return (lemma.isEmpty ? _text(json['word']) : lemma).toLowerCase();
+}
 
-final Map<String, _Enricher> _examEnrichment = {
-  'abandon': (base) => _withUsage(
-    base,
-    'She refused to abandon her dream of becoming a writer.',
-    const ['abandon a plan', 'abandon a dream'],
-  ),
-  'accomplish': (base) => _withUsage(
-    base,
-    'He accomplished the task ahead of schedule.',
-    const ['accomplish a task', 'accomplish a goal'],
-  ),
-  'benefit': (base) => _withUsage(
-    base,
-    'Regular exercise offers many health benefits.',
-    const ['benefit from', 'health benefits'],
-  ),
-  'challenge': (base) => _withUsage(
-    base,
-    'Learning a new language is always a challenge.',
-    const ['face a challenge', 'a major challenge'],
-  ),
-  'consequence': (base) => _withUsage(
-    base,
-    'Every decision has its consequences.',
-    const ['the consequence of', 'face the consequences'],
-  ),
-  'demonstrate': (base) => _withUsage(
-    base,
-    'The teacher demonstrated how to solve the equation.',
-    const ['demonstrate an ability', 'demonstrate how'],
-  ),
-  'efficient': (base) => _withUsage(
-    base,
-    'Email is a more efficient way to communicate.',
-    const ['an efficient way', 'energy-efficient'],
-  ),
-  'emphasize': (base) => _withUsage(
-    base,
-    'The coach emphasized the importance of teamwork.',
-    const ['emphasize the importance of'],
-  ),
-  'essential': (base) => _withUsage(
-    base,
-    'Water is essential for life.',
-    const ['be essential for', 'an essential part of'],
-  ),
-  'fundamental': (base) => _withUsage(
-    base,
-    'Reading is a fundamental skill.',
-    const ['be fundamental to', 'a fundamental skill'],
-  ),
-  'generate': (base) => _withUsage(
-    base,
-    'Solar panels generate clean energy.',
-    const ['generate energy', 'generate interest'],
-  ),
-  'gradually': (base) => _withUsage(
-    base,
-    'Her confidence grew gradually over time.',
-    const ['gradually increase', 'gradually change'],
-  ),
-  'inevitable': (base) => _withUsage(
-    base,
-    'Change is inevitable in life.',
-    const ['an inevitable consequence', 'seem inevitable'],
-  ),
-  'investigate': (base) => _withUsage(
-    base,
-    'Police are investigating the cause of the accident.',
-    const ['investigate the cause', 'investigate a claim'],
-  ),
-  'remarkable': (base) => _withUsage(
-    base,
-    'She has made remarkable progress this year.',
-    const ['remarkable progress', 'a remarkable achievement'],
-  ),
-  'policy': (base) => _withUsage(
-    base,
-    'The school introduced a new phone policy.',
-    const ['introduce a policy', 'public policy'],
-  ),
-  'promote': (base) => _withUsage(
-    base,
-    'The campaign promotes healthy eating habits.',
-    const ['promote awareness', 'promote development'],
-  ),
-  'reduce': (base) => _withUsage(
-    base,
-    'The city is trying to reduce plastic waste.',
-    const ['reduce waste', 'reduce the risk of'],
-  ),
-  'impact': (base) => _withUsage(
-    base,
-    'Climate change has a serious impact on farming.',
-    const ['have an impact on', 'a significant impact'],
-  ),
-  'substantial': (base) => _replace(
-    base,
-    senses: const [
-      VocabularySense(
-        definitionZh: '大量的；可觀的',
-        partOfSpeech: 'adj.',
-        isExamPriority: true,
-        examples: [
-          VocabularyExample(
-            sentence: 'The project requires a substantial amount of money.',
-            translationZh: '這項計畫需要一筆可觀的資金。',
-          ),
-        ],
-      ),
-      VocabularySense(
-        definitionZh: '重要的；實質的',
-        partOfSpeech: 'adj.',
-        examples: [
-          VocabularyExample(
-            sentence: 'There is substantial evidence to support the claim.',
-            translationZh: '有實質證據支持這項主張。',
-          ),
-        ],
-      ),
-    ],
-    synonyms: const [
-      LexicalRelation(word: 'considerable', noteZh: '強調數量或程度可觀'),
-      LexicalRelation(word: 'significant', noteZh: '也可強調重要性'),
-    ],
-    collocations: const [
-      'a substantial amount of',
-      'substantial evidence',
-      'substantial change',
-    ],
-  ),
-  'affect': (base) => _replace(
-    base,
-    synonyms: const [
-      LexicalRelation(word: 'influence', noteZh: '影響的過程較中性'),
-      LexicalRelation(word: 'impact', noteZh: '常暗示較強烈的影響'),
-    ],
-    confusingWords: const [
-      LexicalRelation(word: 'effect', noteZh: '通常作名詞，表示結果或影響'),
-    ],
-    collocations: const ['directly affect', 'adversely affect'],
-    wordFamily: const [
-      WordFamilyMember(word: 'effect', partOfSpeech: 'n.', meaningZh: '影響；結果'),
-      WordFamilyMember(
-        word: 'effective',
-        partOfSpeech: 'adj.',
-        meaningZh: '有效的',
-      ),
-    ],
-  ),
-  'respond': (base) => _replace(
-    base,
-    collocations: const ['respond to', 'respond quickly'],
-    wordFamily: const [
-      WordFamilyMember(word: 'response', partOfSpeech: 'n.', meaningZh: '回應'),
-      WordFamilyMember(
-        word: 'responsive',
-        partOfSpeech: 'adj.',
-        meaningZh: '反應靈敏的',
-      ),
-    ],
-  ),
-  'economic': (base) => _replace(
-    base,
-    confusingWords: const [
-      LexicalRelation(word: 'economical', noteZh: '節省的；經濟實惠的'),
-    ],
-    collocations: const ['economic growth', 'economic development'],
-  ),
-  'historic': (base) => _replace(
-    base,
-    confusingWords: const [
-      LexicalRelation(word: 'historical', noteZh: '與歷史有關的；historic 指具歷史重要性'),
-    ],
-  ),
-  'expose': (base) =>
-      _replace(base, collocations: const ['be exposed to', 'expose a problem']),
-  'advantage': (base) => _replace(
-    base,
-    collocations: const ['take advantage of', 'have an advantage over'],
-  ),
-};
-
-VocabularyEntry _withUsage(
+VocabularyEntry _applyOverlay(
   VocabularyEntry base,
-  String sentence,
-  List<String> collocations,
+  Map<String, dynamic> overlay,
 ) {
   final primary = base.primarySense;
-  final senses = [
-    VocabularySense(
-      definitionZh: primary.definitionZh,
-      definitionEn: primary.definitionEn,
-      partOfSpeech: primary.partOfSpeech,
-      isExamPriority: primary.isExamPriority,
-      examples: [
-        ...primary.examples,
-        if (!primary.examples.any((example) => example.sentence == sentence))
-          VocabularyExample(sentence: sentence),
-      ],
-    ),
-    ...base.senses.skip(1),
-  ];
-  return _replace(base, senses: senses, collocations: collocations);
+  final overlaySenses = _mapList(overlay['senses']);
+  final extraExamples = _mapList(
+    overlay['examples'],
+  ).map(VocabularyExample.fromJson).toList(growable: false);
+  final senses = overlaySenses.isNotEmpty
+      ? overlaySenses.map(VocabularySense.fromJson).toList(growable: false)
+      : [
+          VocabularySense(
+            definitionZh: primary.definitionZh,
+            definitionEn: primary.definitionEn,
+            partOfSpeech: primary.partOfSpeech,
+            isExamPriority: primary.isExamPriority,
+            examples: _uniqueExamples([...primary.examples, ...extraExamples]),
+          ),
+          ...base.senses.skip(1),
+        ];
+  final collocations = _stringList(overlay['collocations']);
+  final entry = VocabularyEntry(
+    id: base.id,
+    word: base.word,
+    lemma: base.lemma,
+    senses: senses,
+    synonyms: _relations(overlay['synonyms'], base.synonyms),
+    confusingWords: _relations(overlay['confusingWords'], base.confusingWords),
+    collocations: collocations.isEmpty ? base.collocations : collocations,
+    wordFamily: _wordFamily(overlay['wordFamily'], base.wordFamily),
+    notes: _text(overlay['notes']).isEmpty
+        ? base.notes
+        : _text(overlay['notes']),
+    level: base.level,
+    tags: base.tags,
+    source: base.source,
+  );
+  _validateApplicationContent(entry);
+  return entry;
 }
 
-VocabularyEntry _replace(
-  VocabularyEntry base, {
-  List<VocabularySense>? senses,
-  List<LexicalRelation>? synonyms,
-  List<LexicalRelation>? confusingWords,
-  List<String>? collocations,
-  List<WordFamilyMember>? wordFamily,
-}) => VocabularyEntry(
-  id: base.id,
-  word: base.word,
-  lemma: base.lemma,
-  senses: senses ?? base.senses,
-  synonyms: synonyms ?? base.synonyms,
-  confusingWords: confusingWords ?? base.confusingWords,
-  collocations: collocations ?? base.collocations,
-  wordFamily: wordFamily ?? base.wordFamily,
-  notes: base.notes,
-  level: base.level,
-  tags: base.tags,
-  source: base.source,
-);
+List<VocabularyExample> _uniqueExamples(List<VocabularyExample> examples) {
+  final seen = <String>{};
+  return examples
+      .where((example) => seen.add(example.sentence.toLowerCase()))
+      .toList(growable: false);
+}
+
+List<LexicalRelation> _relations(Object? raw, List<LexicalRelation> fallback) {
+  final values = _mapList(raw);
+  return values.isEmpty
+      ? fallback
+      : values.map(LexicalRelation.fromJson).toList(growable: false);
+}
+
+List<WordFamilyMember> _wordFamily(
+  Object? raw,
+  List<WordFamilyMember> fallback,
+) {
+  final values = _mapList(raw);
+  return values.isEmpty
+      ? fallback
+      : values.map(WordFamilyMember.fromJson).toList(growable: false);
+}
+
+void _validateApplicationContent(VocabularyEntry entry) {
+  final examples = entry.senses.expand((sense) => sense.examples);
+  for (final example in examples) {
+    if (example.sentence.trim().split(RegExp(r'\s+')).length < 4) {
+      throw FormatException('Example is too short for ${entry.lemma}.');
+    }
+    final target = example.targetText.trim();
+    final containsTarget = target.isEmpty
+        ? _containsWordForm(example.sentence, entry.lemma)
+        : RegExp(
+            '(^|[^a-z])${RegExp.escape(target)}([^a-z]|\$)',
+            caseSensitive: false,
+          ).hasMatch(example.sentence);
+    if (!containsTarget) {
+      throw FormatException('Example does not use ${entry.lemma}.');
+    }
+  }
+  for (final collocation in entry.collocations) {
+    if (!_containsWordForm(collocation, entry.lemma)) {
+      throw FormatException('Collocation does not use ${entry.lemma}.');
+    }
+  }
+}
+
+bool _containsWordForm(String text, String lemma) {
+  final lower = text.toLowerCase();
+  final forms = <String>{
+    lemma,
+    '${lemma}s',
+    '${lemma}es',
+    '${lemma}ed',
+    '${lemma}ing',
+    if (lemma.endsWith('e')) '${lemma.substring(0, lemma.length - 1)}ed',
+    if (lemma.endsWith('e')) '${lemma.substring(0, lemma.length - 1)}ing',
+    if (lemma.endsWith('y')) '${lemma.substring(0, lemma.length - 1)}ies',
+    if (lemma.endsWith('y')) '${lemma.substring(0, lemma.length - 1)}ied',
+  };
+  return forms.any(
+    (form) =>
+        RegExp('(^|[^a-z])${RegExp.escape(form)}([^a-z]|\$)').hasMatch(lower),
+  );
+}
+
+List<Map<String, dynamic>> _mapList(Object? raw) => raw is List
+    ? raw
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(growable: false)
+    : const [];
+
+List<String> _stringList(Object? raw) => raw is List
+    ? raw.map(_text).where((value) => value.isNotEmpty).toList(growable: false)
+    : const [];
+
+String _text(Object? value) => value?.toString().trim() ?? '';
 
 int _stableHash(String value) {
   var hash = 0x811C9DC5;

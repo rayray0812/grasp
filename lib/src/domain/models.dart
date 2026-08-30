@@ -24,16 +24,19 @@ class VocabularyExample {
     required this.sentence,
     this.translationZh = '',
     this.source = '',
+    this.targetText = '',
   });
 
   final String sentence;
   final String translationZh;
   final String source;
+  final String targetText;
 
   Map<String, dynamic> toJson() => {
     'sentence': sentence,
     'translationZh': translationZh,
     'source': source,
+    'targetText': targetText,
   };
 
   factory VocabularyExample.fromJson(Map<String, dynamic> json) =>
@@ -41,6 +44,7 @@ class VocabularyExample {
         sentence: _string(json['sentence']),
         translationZh: _string(json['translationZh']),
         source: _string(json['source']),
+        targetText: _string(json['targetText']),
       );
 }
 
@@ -267,6 +271,8 @@ class ReviewRecord {
     required this.difficultyBefore,
     required this.difficultyAfter,
     required this.nextDue,
+    this.response = '',
+    this.correctionCompleted = false,
   });
 
   final String id;
@@ -283,6 +289,8 @@ class ReviewRecord {
   final double difficultyBefore;
   final double difficultyAfter;
   final DateTime nextDue;
+  final String response;
+  final bool correctionCompleted;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -299,6 +307,8 @@ class ReviewRecord {
     'difficultyBefore': difficultyBefore,
     'difficultyAfter': difficultyAfter,
     'nextDue': nextDue.toIso8601String(),
+    'response': response,
+    'correctionCompleted': correctionCompleted,
   };
 
   factory ReviewRecord.fromJson(Map<String, dynamic> json) => ReviewRecord(
@@ -323,6 +333,8 @@ class ReviewRecord {
     difficultyBefore: (json['difficultyBefore'] as num?)?.toDouble() ?? 0,
     difficultyAfter: (json['difficultyAfter'] as num?)?.toDouble() ?? 0,
     nextDue: _date(json['nextDue']) ?? DateTime.now().toUtc(),
+    response: _string(json['response']),
+    correctionCompleted: json['correctionCompleted'] == true,
   );
 }
 

@@ -36,7 +36,7 @@ class HiveGraspRepository implements GraspRepository {
 
   @override
   Future<void> seedBuiltInCatalogIfNeeded() async {
-    if (_settings.get('builtinCatalogVersion') == 3) return;
+    if (_settings.get('builtinCatalogVersion') == 4) return;
     final catalog = await _catalogLoader.load();
     await _vocabulary.putAll({
       for (final entry in catalog.entries) entry.id: entry.toJson(),
@@ -53,7 +53,7 @@ class HiveGraspRepository implements GraspRepository {
         await _decks.put(deck.id, deck.toJson());
       }
     }
-    await _settings.put('builtinCatalogVersion', 3);
+    await _settings.put('builtinCatalogVersion', 4);
   }
 
   @override

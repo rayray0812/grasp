@@ -25,3 +25,5 @@ Pull request 請包含：問題、做法、驗證方式，以及任何資料模�
 ## Content contributions
 
 學測內容應保持精簡並可追溯來源。例句需自然、程度適合高中生；近義字辨析與 collocation 只保留考試與實際使用價值。缺少可靠語境時應停留在 recall，不得用不自然的模板硬造例句。不要把 Grasp 變成完整字典或題庫平台。
+
+新增或修改語境資料前，請閱讀 [`docs/CONTENT_GUIDE.md`](docs/CONTENT_GUIDE.md)。

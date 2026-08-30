@@ -141,4 +141,59 @@ void main() {
     expect(prompt.prompt, isNotEmpty);
     expect(prompt.responseMode, isNot(ReviewResponseMode.reveal));
   });
+
+  test('cloze accepts the inflected form required by the sentence', () {
+    const inflected = VocabularyEntry(
+      id: 'v2',
+      word: 'accomplish',
+      lemma: 'accomplish',
+      senses: [
+        VocabularySense(
+          definitionZh: '完成；達成',
+          partOfSpeech: 'v.',
+          examples: [
+            VocabularyExample(
+              sentence: 'He accomplished the task ahead of schedule.',
+            ),
+          ],
+        ),
+      ],
+    );
+    final prompt = const ReviewEngine().buildPrompt(
+      entry: inflected,
+      state: const LearningState(vocabularyId: 'v2', repetitions: 2),
+    );
+    expect(prompt.type, ReviewQuestionType.cloze);
+    expect(prompt.prompt, contains('_____'));
+    expect(prompt.answer, 'accomplished');
+    expect(prompt.matchesResponse('accomplished'), isTrue);
+    expect(prompt.matchesResponse('accomplish'), isFalse);
+  });
+
+  test('cloze supports an explicitly authored irregular target form', () {
+    const irregular = VocabularyEntry(
+      id: 'v3',
+      word: 'go',
+      lemma: 'go',
+      senses: [
+        VocabularySense(
+          definitionZh: '去',
+          partOfSpeech: 'v.',
+          examples: [
+            VocabularyExample(
+              sentence: 'She went home early yesterday.',
+              targetText: 'went',
+            ),
+          ],
+        ),
+      ],
+    );
+    final prompt = const ReviewEngine().buildPrompt(
+      entry: irregular,
+      state: const LearningState(vocabularyId: 'v3', repetitions: 2),
+    );
+    expect(prompt.prompt, 'She _____ home early yesterday.');
+    expect(prompt.answer, 'went');
+    expect(prompt.matchesResponse('went'), isTrue);
+  });
 }

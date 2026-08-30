@@ -18,6 +18,8 @@ Grasp 不需要帳號，沒有訂閱、廣告、排行榜、社群 feed 或付�
 - FSRS spaced repetition（預設目標記憶率 90%）
 - Recognition、Typed Recall、Cloze、Meaning in Context、Collocation 與 Active Use 題型
 - 封閉題要求實際輸入答案；造句題以明確檢核表誠實自評
+- 答錯後必須重新輸入正確答案，FSRS 一律依第一次作答記為 `Again`
+- 最近 50 題應用正確率、平均反應時間、弱項與最近錯題
 - 大考中心 Level 1–6 內建詞彙表
 - 一字多義、例句、近義／易混淆字、搭配與 word family 模型
 - Quizlet tab-separated export 與舊版 importer JSON 匯入
@@ -94,6 +96,14 @@ lib/
     ui/          Today, Review, Library, Import, Settings
 test/            tests for the rewritten app
 ```
+
+應用內容獨立放在 `assets/exam/gsat_application_content.json`，不硬編進
+Dart。內容 overlay 只補充例句、多義、搭配、近義／易混淆字與 word
+family，不會改變單字 ID 或 FSRS 狀態。格式與品質規則見
+[`docs/CONTENT_GUIDE.md`](docs/CONTENT_GUIDE.md)。
+
+6,392 字的基礎字義與詞性已可離線使用；高品質語境資料會分批審核補入。
+沒有可靠例句的字只出 Recall，不會用機械模板假造 Cloze 或造句範例。
 
 資料流：
 

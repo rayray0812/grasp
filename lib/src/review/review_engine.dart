@@ -15,6 +15,7 @@ class ReviewPrompt {
     this.responseMode = ReviewResponseMode.reveal,
     this.acceptedAnswers = const [],
     this.selfCheckItems = const [],
+    this.targetSeconds = 10,
   });
 
   final String vocabularyId;
@@ -28,6 +29,7 @@ class ReviewPrompt {
   final ReviewResponseMode responseMode;
   final List<String> acceptedAnswers;
   final List<String> selfCheckItems;
+  final int targetSeconds;
 
   bool get needsTypedResponse => responseMode != ReviewResponseMode.reveal;
   bool get canCheckAutomatically =>
@@ -75,6 +77,7 @@ class ReviewEngine {
           context: primary.examples.firstOrNull?.sentence ?? '',
           answer: definitions,
           supportingDetails: _details(entry),
+          targetSeconds: 8,
         );
       case ReviewQuestionType.recall:
         return _recallPrompt(entry, primary);
@@ -88,20 +91,26 @@ class ReviewEngine {
         );
         final example = clozeSense.examples.firstOrNull;
         if (example == null) return _recallPrompt(entry, primary);
+        final cloze = _cloze(
+          example.sentence,
+          entry.lemma,
+          preferredAnswer: example.targetText,
+        );
         return ReviewPrompt(
           vocabularyId: entry.id,
           type: type,
           eyebrow: 'Cloze',
           instruction: '根據整句語意與文法，輸入最適合的單字。',
-          prompt: _cloze(example.sentence, entry.word),
+          prompt: cloze.prompt,
           context: clozeSense.definitionZh,
-          answer: entry.word,
+          answer: cloze.answer,
           supportingDetails: [
             if (example.translationZh.isNotEmpty) example.translationZh,
             ..._details(entry),
           ],
           responseMode: ReviewResponseMode.typedExact,
-          acceptedAnswers: {entry.word, entry.lemma}.toList(),
+          acceptedAnswers: [cloze.answer],
+          targetSeconds: 15,
         );
       case ReviewQuestionType.meaningDiscrimination:
         final sense = entry.senses[state.repetitions % entry.senses.length];
@@ -115,13 +124,17 @@ class ReviewEngine {
           context: '這裡的「${entry.word}」是什麼意思？',
           answer: _senseLabel(sense),
           supportingDetails: _details(entry),
+          targetSeconds: 15,
         );
       case ReviewQuestionType.usage:
         final collocation = entry.collocations.firstOrNull;
         final synonym = entry.synonyms.firstOrNull;
         final asksCollocation = collocation != null;
+        final collocationCloze = asksCollocation
+            ? _cloze(collocation, entry.lemma)
+            : null;
         final usagePrompt = asksCollocation
-            ? _cloze(collocation, entry.word)
+            ? collocationCloze!.prompt
             : '「${entry.word}」在這個語意下可替換成哪個近義字？';
         return ReviewPrompt(
           vocabularyId: entry.id,
@@ -133,7 +146,10 @@ class ReviewEngine {
           answer: asksCollocation ? collocation : synonym!.word,
           supportingDetails: _details(entry),
           responseMode: ReviewResponseMode.typedExact,
-          acceptedAnswers: [asksCollocation ? entry.word : synonym!.word],
+          acceptedAnswers: [
+            asksCollocation ? collocationCloze!.answer : synonym!.word,
+          ],
+          targetSeconds: 12,
         );
       case ReviewQuestionType.production:
         final example = primary.examples.firstOrNull;
@@ -157,6 +173,7 @@ class ReviewEngine {
             if (collocation != null) '搭配自然；可參考「$collocation」',
             '句子有主詞與動詞，且時態、單複數合理',
           ],
+          targetSeconds: 35,
         );
     }
   }
@@ -175,6 +192,7 @@ class ReviewEngine {
         supportingDetails: _details(entry),
         responseMode: ReviewResponseMode.typedExact,
         acceptedAnswers: {entry.word, entry.lemma}.toList(),
+        targetSeconds: 10,
       );
 
   ReviewQuestionType _selectType(
@@ -213,13 +231,41 @@ class ReviewEngine {
     sense.definitionZh,
   ].join(' ');
 
-  String _cloze(String sentence, String word) {
-    final pattern = RegExp(RegExp.escape(word), caseSensitive: false);
-    if (pattern.hasMatch(sentence)) {
-      return sentence.replaceFirst(pattern, '_____');
+  ({String prompt, String answer}) _cloze(
+    String sentence,
+    String lemma, {
+    String preferredAnswer = '',
+  }) {
+    final forms = {
+      if (preferredAnswer.trim().isNotEmpty) preferredAnswer.trim(),
+      ..._wordForms(lemma),
+    }.toList()..sort((a, b) => b.length.compareTo(a.length));
+    final pattern = RegExp(
+      '\\b(?:${forms.map(RegExp.escape).join('|')})\\b',
+      caseSensitive: false,
+    );
+    final match = pattern.firstMatch(sentence);
+    if (match != null) {
+      final answer = match.group(0)!;
+      return (
+        prompt: sentence.replaceRange(match.start, match.end, '_____'),
+        answer: answer,
+      );
     }
-    return '$sentence\n提示：填入「${word.length}」個字母的單字';
+    return (prompt: '$sentence\n提示：填入「${lemma.length}」個字母的單字', answer: lemma);
   }
+
+  Set<String> _wordForms(String lemma) => {
+    lemma,
+    '${lemma}s',
+    '${lemma}es',
+    '${lemma}ed',
+    '${lemma}ing',
+    if (lemma.endsWith('e')) '${lemma.substring(0, lemma.length - 1)}ed',
+    if (lemma.endsWith('e')) '${lemma.substring(0, lemma.length - 1)}ing',
+    if (lemma.endsWith('y')) '${lemma.substring(0, lemma.length - 1)}ies',
+    if (lemma.endsWith('y')) '${lemma.substring(0, lemma.length - 1)}ied',
+  };
 
   List<String> _details(VocabularyEntry entry) => [
     if (entry.collocations.isNotEmpty)

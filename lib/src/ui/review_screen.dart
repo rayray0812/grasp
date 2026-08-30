@@ -49,14 +49,30 @@ class ReviewScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            prompt.eyebrow.toUpperCase(),
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  letterSpacing: 1.2,
-                                  fontWeight: FontWeight.w800,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  prompt.eyebrow.toUpperCase(),
+                                  style: Theme.of(context).textTheme.labelMedium
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        letterSpacing: 1.2,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                 ),
+                              ),
+                              Chip(
+                                visualDensity: VisualDensity.compact,
+                                avatar: const Icon(
+                                  Icons.timer_outlined,
+                                  size: 16,
+                                ),
+                                label: Text('建議 ≤ ${prompt.targetSeconds} 秒'),
+                              ),
+                            ],
                           ),
                           if (prompt.instruction.isNotEmpty) ...[
                             const SizedBox(height: 10),
@@ -184,6 +200,44 @@ class ReviewScreen extends StatelessWidget {
                                   ),
                                 ),
                             ],
+                            if (controller.currentResponseIsCorrect ==
+                                false) ...[
+                              const SizedBox(height: 22),
+                              Text(
+                                controller.isCorrectionComplete
+                                    ? '已完成訂正'
+                                    : '訂正後才能繼續',
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: controller.isCorrectionComplete
+                                          ? Colors.green.shade700
+                                          : Theme.of(context).colorScheme.error,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                key: ValueKey(
+                                  'correction-${prompt.vocabularyId}-${prompt.type.name}',
+                                ),
+                                enabled: !controller.isCorrectionComplete,
+                                autocorrect: false,
+                                textInputAction: TextInputAction.done,
+                                decoration: InputDecoration(
+                                  labelText: '重新輸入正確單字',
+                                  helperText:
+                                      controller
+                                              .correctionResponse
+                                              .isNotEmpty &&
+                                          !controller.isCorrectionComplete
+                                      ? '仍不正確，請對照答案再輸入一次。'
+                                      : null,
+                                ),
+                                onChanged: controller.setCorrectionResponse,
+                                onSubmitted: (_) =>
+                                    controller.submitCorrection(),
+                              ),
+                            ],
                             for (final detail in prompt.supportingDetails) ...[
                               const SizedBox(height: 12),
                               Text(
@@ -213,6 +267,14 @@ class ReviewScreen extends StatelessWidget {
                           ? '完成，開始檢核'
                           : '檢查答案',
                     ),
+                  )
+                else if (controller.currentResponseIsCorrect == false &&
+                    !controller.isCorrectionComplete)
+                  FilledButton(
+                    onPressed: controller.correctionResponse.trim().isEmpty
+                        ? null
+                        : controller.submitCorrection,
+                    child: const Text('完成訂正'),
                   )
                 else
                   _RatingBar(controller: controller),
@@ -273,6 +335,28 @@ class _RatingBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final preview = controller.currentSchedulingPreview;
+    if (controller.currentResponseIsCorrect == false) {
+      final due = preview[ReviewRating.again];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '第一次答案不正確，FSRS 會依「答錯」重新安排。',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 10),
+          FilledButton(
+            onPressed: () => controller.rateCurrent(ReviewRating.again),
+            child: Text(
+              due == null
+                  ? '記為答錯並繼續'
+                  : '記為答錯 · ${_interval(due.difference(DateTime.now().toUtc()))}',
+            ),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -361,6 +445,17 @@ class _SessionComplete extends StatelessWidget {
                 '完成 ${controller.sessionTotal} 個單字 · '
                 '${controller.sessionAgainCount} 個需要再加強',
               ),
+              if (controller.sessionApplicationCount > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '應用題第一次作答 '
+                  '${controller.sessionApplicationCorrect} / '
+                  '${controller.sessionApplicationCount}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 28),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(),

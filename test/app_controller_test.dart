@@ -61,6 +61,45 @@ void main() {
     await controller.startTodaySession();
     expect(controller.sessionTotal, lessThanOrEqualTo(cap + 10));
   });
+
+  test(
+    'a wrong typed answer requires correction and is scheduled as again',
+    () async {
+      final now = DateTime.utc(2026, 8, 30, 8);
+      final repository = _MemoryRepository(now);
+      final controller = AppController(
+        repository: repository,
+        clock: () => now,
+      );
+
+      await controller.initialize();
+      await controller.startTodaySession();
+      expect(controller.currentPrompt!.type, ReviewQuestionType.recall);
+
+      controller.setCurrentResponse('effect');
+      controller.submitCurrentResponse();
+      expect(controller.currentResponseIsCorrect, isFalse);
+
+      await controller.rateCurrent(ReviewRating.good);
+      expect(repository.records, isEmpty);
+
+      controller.setCorrectionResponse('affect');
+      controller.submitCorrection();
+      expect(controller.isCorrectionComplete, isTrue);
+      await controller.rateCurrent(ReviewRating.good);
+
+      final record = repository.records.single;
+      expect(record.rating, ReviewRating.again);
+      expect(record.wasCorrect, isFalse);
+      expect(record.response, 'effect');
+      expect(record.correctionCompleted, isTrue);
+
+      await controller.refresh();
+      expect(controller.application.attempts, 1);
+      expect(controller.application.accuracy, 0);
+      expect(controller.recentMistakes.single.entry.word, 'affect');
+    },
+  );
 }
 
 class _MemoryRepository implements GraspRepository {
