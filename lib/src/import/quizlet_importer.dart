@@ -17,6 +17,7 @@ class QuizletImporter {
   QuizletImportResult parse({
     required String raw,
     required String title,
+    String sourceUrl = '',
     DateTime? now,
   }) {
     final cleanTitle = title.trim();
@@ -72,7 +73,9 @@ class QuizletImporter {
       deck: Deck(
         id: deckId,
         title: cleanTitle,
-        description: 'Quizlet 匯入 · ${entries.length} 個單字',
+        description: sourceUrl.trim().isEmpty
+            ? 'Quizlet 匯入 · ${entries.length} 個單字'
+            : 'Quizlet 匯入 · ${entries.length} 個單字\n${sourceUrl.trim()}',
         vocabularyIds: entries.map((entry) => entry.id).toList(growable: false),
         source: DeckSource.quizlet,
         createdAt: timestamp,

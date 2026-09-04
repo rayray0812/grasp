@@ -57,7 +57,9 @@ class AppController extends ChangeNotifier {
     ReviewEngine? reviewEngine,
     QuizletImporter? importer,
     DateTime Function()? clock,
-  }) : _repository = repository,
+  }) : // Repository is intentionally private; callers use a clear public label.
+       // ignore: prefer_initializing_formals
+       _repository = repository,
        _scheduler = scheduler ?? FsrsScheduler(),
        _reviewEngine = reviewEngine ?? const ReviewEngine(),
        _importer = importer ?? const QuizletImporter(),
@@ -328,8 +330,14 @@ class AppController extends ChangeNotifier {
   Future<int> importQuizlet({
     required String raw,
     required String title,
+    String sourceUrl = '',
   }) async {
-    final result = _importer.parse(raw: raw, title: title, now: _clock());
+    final result = _importer.parse(
+      raw: raw,
+      title: title,
+      sourceUrl: sourceUrl,
+      now: _clock(),
+    );
     await _repository.importDeck(result.deck, result.entries);
     await refresh();
     return result.entries.length;

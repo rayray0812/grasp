@@ -22,7 +22,7 @@ Grasp 不需要帳號，沒有訂閱、廣告、排行榜、社群 feed 或付�
 - 最近 50 題應用正確率、平均反應時間、弱項與最近錯題
 - 大考中心 Level 1–6 內建詞彙表
 - 一字多義、例句、近義／易混淆字、搭配與 word family 模型
-- Quizlet tab-separated export 與舊版 importer JSON 匯入
+- Quizlet 單字集網址抓取、tab-separated export 與舊版 importer JSON 匯入
 - Vocabulary、Learning State、Review History、Deck、Review Session 分離
 - Hive local-first storage
 - OpenAI / Gemini / Anthropic BYOK 安全儲存入口
@@ -40,7 +40,8 @@ Grasp 不需要帳號，沒有訂閱、廣告、排行榜、社群 feed 或付�
 
 ## 開始執行
 
-需求：Flutter stable、Dart 3.8 以上。
+需求：Flutter 3.44 以上、Dart 3.12 以上。Quizlet 網址匯入支援 Android
+7.0（API 24）以上與 iOS 13 以上。
 
 ```bash
 flutter pub get
@@ -71,7 +72,13 @@ AI 沒有設定時，所有核心功能仍完整可用。
 
 ## Quizlet Import
 
-在 Quizlet 匯出單字集，選擇 Tab 分隔單字與定義，然後貼到 Grasp 的 Import 頁面：
+在 Android 或 iOS App 的 Import 頁貼上 Quizlet 單字集網址。Grasp 會在受限
+WebView 中開啟該頁；頁面完整載入後按「抓取這個單字集」，確認單字數量即可
+匯入。WebView 只允許 Quizlet 與其 Cloudflare 驗證頁面，不會繞過登入或
+頁面驗證。
+
+若 Quizlet 改版或限制頁面載入，仍可在 Quizlet 匯出單字集，選擇 Tab 分隔
+單字與定義，再貼到同一頁：
 
 ```text
 substantial\t大量的；可觀的

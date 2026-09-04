@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 2.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.12.0
 
 dependencies:
   flutter:
@@ -20,6 +20,9 @@ dependencies:
 
   # Optional BYOK AI adapter
   http: ^1.2.2
+
+  # User-visible Quizlet set import on Android and iOS
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:

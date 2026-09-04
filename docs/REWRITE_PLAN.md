@@ -15,7 +15,8 @@
 - Today queue from due reviews plus a bounded number of unseen words.
 - Review UI around a small, extensible application ladder: recognition,
   typed recall, cloze, meaning discrimination, collocation and sentence use.
-- Quizlet import as offline pasted export / JSON rather than a fragile general WebView.
+- Quizlet URL import through a Quizlet-only WebView, with pasted export / JSON
+  retained as a resilient fallback when the upstream page changes.
 - AI as optional local/BYOK interfaces with secrets in platform secure storage.
 
 ## Remove

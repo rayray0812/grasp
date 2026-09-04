@@ -59,7 +59,9 @@ abstract class AiEnhancementClient {
 /// creating server-side response state for these one-shot vocabulary helpers.
 class OpenAiByokClient implements AiEnhancementClient {
   OpenAiByokClient({required AiSecretStore secrets, http.Client? httpClient})
-    : _secrets = secrets,
+    : // Keep the public constructor label concise while storing it privately.
+      // ignore: prefer_initializing_formals
+      _secrets = secrets,
       _http = httpClient ?? http.Client();
 
   final AiSecretStore _secrets;
